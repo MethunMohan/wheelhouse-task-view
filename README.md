@@ -74,3 +74,14 @@ scripts/install-dev.sh
 ```
 
 Open `dev-vault/` as an Obsidian vault to explore the sample notes and tasks.
+
+## Releasing
+
+Update the version in `manifest.json`, update `CHANGELOG.md`, and rebuild with `node scripts/build.js`. Commit and push those changes to `main`, then push an annotated tag that exactly matches the manifest version (for example, `0.1.1`):
+
+```bash
+git tag -a 0.1.1 -m "0.1.1"
+git push origin 0.1.1
+```
+
+The GitHub Actions workflow builds and verifies `main.js`, then creates a draft release with the plugin files and build provenance attached. Review the draft and its generated notes on GitHub, then publish it. The repository's Actions settings must allow workflows to create releases.
