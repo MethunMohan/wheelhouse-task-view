@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+- Refresh the plugin's visual styling and screenshots, and improve the README presentation.
+- Update release workflow details and clarify setup and development documentation.
+
 ## 0.1.2
 - Rename the dashboard's Overview tab to Board and label unassigned tasks as Inbox.
 - Separate Inbox tasks from the Now, Later, and Someday planning lanes.

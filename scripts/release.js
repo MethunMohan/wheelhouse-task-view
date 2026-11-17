@@ -53,7 +53,7 @@ try {
     fail('Push the current main branch to origin before creating a release tag.');
   }
   if (run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${version}`])) {
-    fail(`Remote tag ${version} already exists.`);
+    fail(`Remote tag ${version} already exists. Bump manifest.json to a new version, add its versions.json entry and CHANGELOG.md section, commit and push those changes, then rerun this command.`);
   }
 
   run(process.execPath, ['scripts/build.js', '--check']);

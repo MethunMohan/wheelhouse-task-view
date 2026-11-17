@@ -1,7 +1,7 @@
 {
   "id": "wheelhouse-task-view",
   "name": "Wheelhouse Task View",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "minAppVersion": "1.15.1",
   "description": "Organize Markdown checkbox tasks by note across four lanes, with a manual task queue. No runtime dependencies.",
   "author": "Methun Mohan",
