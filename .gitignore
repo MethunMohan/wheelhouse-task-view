@@ -155,3 +155,5 @@ vite.config.ts.timestamp-*
 .nx/cache
 .nx/workspace-data
 .nx/migrate-runs
+# The sample vault's local Obsidian state is not part of the plugin source.
+dev-vault/.obsidian/
