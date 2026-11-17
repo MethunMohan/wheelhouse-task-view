@@ -77,14 +77,14 @@ test('metadata survives line moves, edits and capitalisation changes', async () 
   assert.strictEqual(h.store.laneOf(id), 'now');
 });
 
-test('totally rewritten task does not inherit metadata', async () => {
+test('totally rewritten task gets a new identity but keeps its note lane', async () => {
   const h = harness({ 'a.md': '- [ ] Buy milk\n' });
   await h.index.fullScan();
   const id = h.idOf('Buy milk');
   h.store.moveToLane(id, 'now');
   await h.edit('a.md', '- [ ] Book the dentist\n');
   assert.notStrictEqual(h.idOf('Book the dentist'), id);
-  assert.strictEqual(h.store.laneOf(h.idOf('Book the dentist')), null);
+  assert.strictEqual(h.store.laneOf(h.idOf('Book the dentist')), 'now');
 });
 
 test('same description in several notes stays separate', async () => {
@@ -117,7 +117,7 @@ test('identical duplicates in one note: completing one keeps the other\'s metada
   assert.strictEqual(h.store.laneOf(c), 'later');
 });
 
-test('ambiguous duplicate removal does not guess', async () => {
+test('ambiguous duplicate removal does not transfer task identity', async () => {
   const h = harness({ 'd.md': 'x\n- [ ] Call plumber\n- [ ] Call plumber\n' });
   await h.index.fullScan();
   const [a, b] = h.index.allTasks().map((t) => t.id);
@@ -125,9 +125,9 @@ test('ambiguous duplicate removal does not guess', async () => {
   await h.edit('d.md', 'x\n- [ ] Call plumber\n'); // one deleted externally; which one is unknowable? context says first
   const now = h.index.allTasks();
   assert.strictEqual(now.length, 1);
-  // Either it matched by unique context, or became new. It must never carry a *wrong* lane silently
-  // unless the context genuinely pointed at it.
-  assert.ok([a, b].includes(now[0].id) || h.store.laneOf(now[0].id) === null);
+  // The note card keeps its lane, but the unmatched duplicate must not keep either task identity.
+  assert.ok(![a, b].includes(now[0].id));
+  assert.strictEqual(h.store.laneOf(now[0].id), 'now');
 });
 
 test('rename keeps metadata; delete marks missing; cut/paste to another note adopts it', async () => {
@@ -171,9 +171,11 @@ test('lane/queue ordering and ignore state', async () => {
   await h.index.fullScan();
   const [a, b, c] = h.index.allTasks().map((t) => t.id);
   h.store.moveToLane(a, 'now'); h.store.moveToLane(b, 'now'); h.store.moveToLane(c, 'now', a);
-  assert.deepStrictEqual(h.store.lane('now'), [c, a, b]);
+  // Lane placement belongs to the note card and retains the note's task order.
+  assert.deepStrictEqual(h.store.lane('now'), [a, b, c]);
   h.store.moveToLane(a, 'later');
-  assert.deepStrictEqual(h.store.lane('now'), [c, b]);
+  assert.deepStrictEqual(h.store.lane('now'), []);
+  assert.deepStrictEqual(h.store.lane('later'), [a, b, c]);
   h.store.placeInQueue(c, a);
   assert.deepStrictEqual(h.store.queueIds(), [c, a, b]);
   h.store.removeFromQueue(a);
@@ -185,7 +187,7 @@ test('lane/queue ordering and ignore state', async () => {
   const s2 = new TaskStore(null, (d) => { saved = JSON.parse(JSON.stringify(d)); });
   Object.assign(s2.data, h.store.data); s2.flush();
   const s3 = new TaskStore(saved, () => {});
-  assert.deepStrictEqual(s3.lane('now'), [c, b]);
+  assert.deepStrictEqual(s3.lane('now'), []);
   assert.ok(s3.isIgnored(b));
 });
 
