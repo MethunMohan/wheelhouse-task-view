@@ -14,13 +14,13 @@
 
 Wheelhouse Task View brings open Markdown checkboxes from across your vault into a board organized by note. Move whole notes between **Now**, **Later**, **Someday**, and **Inbox**, or arrange individual tasks in a separate queue. Your Markdown remains the source of truth.
 
-| Board · light theme | Task Queue · light theme |
-| --- | --- |
-| ![Board showing note cards in Now, Later, Someday, and Inbox](docs/screenshots/board-light.png) | ![Task Queue showing manually ordered tasks and source notes](docs/screenshots/queue-light.png) |
-
 | Board · dark theme | Task Queue · dark theme |
 | --- | --- |
 | ![Board in dark theme showing note cards in four sections](docs/screenshots/board-dark.png) | ![Task Queue in dark theme showing ordered tasks and source notes](docs/screenshots/queue-dark.png) |
+
+| Board · light theme | Task Queue · light theme |
+| --- | --- |
+| ![Board showing note cards in Now, Later, Someday, and Inbox](docs/screenshots/board-light.png) | ![Task Queue showing manually ordered tasks and source notes](docs/screenshots/queue-light.png) |
 
 ## Features
 
@@ -29,7 +29,7 @@ Wheelhouse Task View brings open Markdown checkboxes from across your vault into
 - **Work from the source:** open a task’s note or complete it directly from the board or queue; the original Markdown checkbox is updated.
 - **Search and focus:** search task text and note paths, collapse lanes and note cards, or hide tasks from the board and restore them later.
 - **Make it yours:** rename the board lanes and choose their colors and the task queue background color.
-- **Local by design:** no accounts, network requests, telemetry, databases, or runtime dependencies.
+- **Local by design:** no accounts, network requests, telemetry, or databases. The plugin works with Obsidian as installed; you don't need to install extra packages.
 
 ## Get started
 
@@ -74,7 +74,7 @@ The plugin stores task fingerprints, note paths, lane assignments, queue order, 
 
 ## Development
 
-The plugin has no npm dependencies. Source modules are in `src/`; `scripts/build.js` bundles them into Obsidian’s single-file `main.js` using Node built-ins.
+You don't need to install any packages to build or use the plugin. Source modules are in `src/`; `scripts/build.js` bundles them into Obsidian’s single-file `main.js` using Node.js.
 
 ```bash
 node scripts/build.js

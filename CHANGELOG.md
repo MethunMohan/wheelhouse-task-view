@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+- Show dark theme screenshots before light theme screenshots in the README.
+- Explain in plain language that no extra packages need to be installed.
+
 ## 0.1.3
 - Refresh the plugin's visual styling and screenshots, and improve the README presentation.
 - Update release workflow details and clarify setup and development documentation.
