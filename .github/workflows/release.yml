@@ -3,7 +3,7 @@ name: Release Obsidian plugin
 on:
   push:
     tags:
-      - '*'
+      - '*.*.*'
 
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          node -e 'const version = require("./manifest.json").version; if (process.env.RELEASE_TAG !== version) { console.error(`Tag ${process.env.RELEASE_TAG} does not match manifest version ${version}`); process.exit(1); }'
+          node -e 'const m = require("./manifest.json"); const versions = require("./versions.json"); if (!/^\d+\.\d+\.\d+$/.test(m.version) || process.env.RELEASE_TAG !== m.version) { console.error(`Tag ${process.env.RELEASE_TAG} does not match x.y.z manifest version ${m.version}`); process.exit(1); } if (versions[m.version] !== m.minAppVersion) { console.error(`versions.json must map ${m.version} to ${m.minAppVersion}`); process.exit(1); }'
 
       - name: Build and verify plugin
         run: |
@@ -43,10 +43,11 @@ jobs:
 
       - name: Create draft release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" \
+            --verify-tag \
             --title="Wheelhouse Task View v$RELEASE_TAG" \
             --draft \
             --generate-notes \
