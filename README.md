@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/screenshots/logo.png" alt="Wheelhouse Task View logo" width="190">
+  <img src="docs/screenshots/logo-readme.png" alt="Wheelhouse Task View logo" width="340">
 </p>
 
 <h1 align="center">Wheelhouse Task View</h1>
