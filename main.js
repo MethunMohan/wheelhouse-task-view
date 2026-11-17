@@ -965,7 +965,6 @@ function renderTask(view, parent, task) {
   view.makeCheckbox(row, task, text);
   const link = row.createEl('button', { cls: 'to-task-text', attr: { 'aria-label': `Open note: ${text}` } });
   link.createSpan({ text: text || '(empty)' });
-  if (task.parentText) link.createSpan({ cls: 'to-subtask-label', text: `Subtask of ${displayText(task.parentText)}` });
   link.addEventListener('click', (e) => view.plugin.openTask(task.id, e));
   row.addEventListener('keydown', (e) => {
     if (e.target !== row) return;
@@ -1091,8 +1090,8 @@ function renderOverview(view, el) {
   const hz = el.createDiv({ cls: 'to-hide-zone' });
   const icon = hz.createSpan({ cls: 'to-hide-icon' });
   setIcon(icon, 'eye-off');
-  hz.createSpan({ text: 'Hide from dashboard' });
-  hz.createSpan({ cls: 'to-hide-hint', text: 'Drop a task or note here. Your notes are not changed.' });
+  hz.createSpan({ text: 'Hide' });
+  hz.createSpan({ cls: 'to-hide-hint', text: 'Drop tasks or notes here' });
   dnd.enableDrop(hz, { onDrop: (id, b, ids) => store.setIgnoredMany(ids, true) });
 }
 
@@ -1303,7 +1302,7 @@ class DashboardView extends ItemView {
       const box = right.createDiv({ cls: 'to-search' });
       const si = box.createSpan({ cls: 'to-search-icon', attr: { 'aria-hidden': 'true' } });
       setIcon(si, 'search');
-      const input = box.createEl('input', { cls: 'to-search-input', attr: { type: 'search', placeholder: 'Filter tasks or notes', 'aria-label': 'Filter tasks or notes', spellcheck: 'false' } });
+      const input = box.createEl('input', { cls: 'to-search-input', attr: { type: 'search', placeholder: 'Search tasks and notes', 'aria-label': 'Search tasks and notes', spellcheck: 'false' } });
       input.value = this.query;
       input.addEventListener('input', () => { this.query = input.value; this.renderBody(); });
     }

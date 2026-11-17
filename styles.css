@@ -91,7 +91,6 @@ body.to-dragging .to-col-body.is-empty > .to-empty { display: flex; width: 100%;
 .to-task-text { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; cursor: pointer; font-size: var(--font-ui-small); line-height: 1.45; color: var(--text-normal); overflow-wrap: anywhere; white-space: normal; padding: 0 !important; }
 .to-task-text > span { min-width: 0; overflow-wrap: anywhere; }
 .to-task-text:hover { color: var(--text-accent); }
-.to-subtask-label { color: var(--text-muted); font-size: var(--font-ui-smaller); font-weight: normal; }
 
 /* Quick actions: visible on hover or focus only. */
 .to-task-actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 120ms; flex: none; }
@@ -111,12 +110,12 @@ body.to-dragging .to-col-body.is-empty > .to-empty { display: flex; width: 100%;
 
 .to-drop-indicator { flex: none; align-self: stretch; height: 4px; border-radius: 2px; background: var(--interactive-accent); pointer-events: none; list-style: none; }
 
-/* The "Hide from dashboard" target: deliberately grey and quiet. */
-.to-hide-zone { display: flex; align-items: center; justify-content: center; gap: var(--size-4-2); padding: var(--size-4-4); border: 1.5px dashed var(--background-modifier-border-hover); border-radius: var(--to-radius); color: var(--text-muted); font-size: var(--font-ui-small); transition: background 120ms, opacity 120ms; }
+/* Keep the drop target clear without competing with the task lanes. */
+.to-hide-zone { display: flex; align-items: center; justify-content: center; gap: var(--size-4-2); padding: var(--size-4-4); border: 2px dashed var(--background-modifier-border-hover); border-radius: var(--to-radius); color: var(--text-muted); font-size: var(--font-ui-small); transition: background 120ms, opacity 120ms; }
 .to-hide-icon { display: inline-flex; }
 .to-hide-hint { color: var(--text-faint); font-size: var(--font-ui-smaller); }
 .to-hide-zone.to-over { border-color: var(--text-muted); background: var(--background-modifier-hover); color: var(--text-normal); }
-body:not(.to-dragging) .to-hide-zone { opacity: 0.55; }
+body:not(.to-dragging) .to-hide-zone { opacity: 0.8; }
 
 /* ---- Queue ------------------------------------------------------------------ */
 .to-queue { list-style: none; margin: 0 auto; padding: 0; max-width: 760px; display: flex; flex-direction: column; gap: var(--size-4-2); }

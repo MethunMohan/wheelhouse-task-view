@@ -135,7 +135,7 @@ class DashboardView extends ItemView {
       const box = right.createDiv({ cls: 'to-search' });
       const si = box.createSpan({ cls: 'to-search-icon', attr: { 'aria-hidden': 'true' } });
       setIcon(si, 'search');
-      const input = box.createEl('input', { cls: 'to-search-input', attr: { type: 'search', placeholder: 'Filter tasks or notes', 'aria-label': 'Filter tasks or notes', spellcheck: 'false' } });
+      const input = box.createEl('input', { cls: 'to-search-input', attr: { type: 'search', placeholder: 'Search tasks and notes', 'aria-label': 'Search tasks and notes', spellcheck: 'false' } });
       input.value = this.query;
       input.addEventListener('input', () => { this.query = input.value; this.renderBody(); });
     }
