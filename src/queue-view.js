@@ -23,7 +23,7 @@ function renderQueue(view, el) {
     const link = main.createEl('button', { cls: 'to-card-text', text: text || '(empty)', attr: { 'aria-label': `Open note: ${text}` } });
     link.addEventListener('click', (e) => view.plugin.openTask(task.id, e));
     const meta = main.createDiv({ cls: 'to-card-meta' });
-    meta.createSpan({ cls: 'to-source', text: `Page: ${view.sourceName(task)}` });
+    meta.createSpan({ cls: 'to-source', text: view.sourceName(task) });
     dnd.enableDrag(li, task.id);
     li.addEventListener('keydown', (e) => {
       if (e.target !== li) return;
@@ -53,7 +53,7 @@ function renderQueue(view, el) {
     for (const task of rest) {
       const li = ul.createEl('li');
       li.createSpan({ cls: 'to-card-text-static', text: displayText(task.text) });
-      li.createSpan({ cls: 'to-source', text: `Page: ${view.sourceName(task)}` });
+      li.createSpan({ cls: 'to-source', text: view.sourceName(task) });
       const add = li.createEl('button', { text: 'Add to queue' });
       add.addEventListener('click', () => store.placeInQueue(task.id));
     }

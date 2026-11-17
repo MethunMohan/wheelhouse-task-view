@@ -1,5 +1,5 @@
 # Household
 
 - [ ] Book the annual heating check
-- [ ] Compare home insurance renewals
-- [ ] Sort receipts for the tax return
+  - [ ] Contact the provider to book a date
+- [x] Sort receipts for the tax return

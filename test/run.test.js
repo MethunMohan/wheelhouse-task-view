@@ -219,7 +219,7 @@ test('lane titles can be renamed, reset and are sanitised', () => {
   const s = new TaskStore({ laneTitles: { now: '  Today ', later: 5, someday: 'Someday' } }, () => {});
   assert.equal(s.laneTitle('now'), 'Today');
   assert.equal(s.laneTitle('later'), 'Later');
-  assert.equal(s.laneTitle('unassigned'), 'Unassigned');
+  assert.equal(s.laneTitle('unassigned'), 'Inbox');
   s.setLaneTitle('later', 'This month');
   assert.equal(s.laneTitle('later'), 'This month');
   s.setLaneTitle('later', '   ');

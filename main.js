@@ -17,8 +17,9 @@ module.exports = {
   VIEW_TYPE: 'task-overview-dashboard',
   RIBBON_ICON: 'list-checks',
   LANES: ['now', 'later', 'someday'],
-  LANE_LABELS: { now: 'Now', later: 'Later', someday: 'Someday', unassigned: 'Unassigned' }, // default titles; the user can rename them
+  LANE_LABELS: { now: 'Now', later: 'Later', someday: 'Someday', unassigned: 'Inbox' }, // default titles; the user can rename them
   LANE_COLORS: { now: '#F2994A', later: '#4C8DF6', someday: '#9B7BF2', unassigned: '#36A89A' },
+  QUEUE_COLOR: '#829D9A',
   TITLE_MAX: 40,
   STALE_MS: 30 * 24 * 60 * 60 * 1000, // how long vanished tasks keep their metadata
   FRESH_MS: 120 * 1000, // window in which a new task may adopt metadata of a moved one
@@ -275,7 +276,7 @@ __defs['./task-storage'] = function (module, exports, require) {
 //   settings: { excludedFolders, excludedFiles, scanNonMarkdown, showSourceNames,
 //               showUnassigned, autoAddToQueue }
 // }
-const { LANES, LANE_LABELS, LANE_COLORS, TITLE_MAX, STALE_MS } = require('./constants');
+const { LANES, LANE_LABELS, LANE_COLORS, QUEUE_COLOR, TITLE_MAX, STALE_MS } = require('./constants');
 
 const defaults = () => ({
   version: 1,
@@ -290,6 +291,7 @@ const defaults = () => ({
     excludedFiles: [],
     scanNonMarkdown: false,
     laneColors: { ...LANE_COLORS },
+    queueColor: QUEUE_COLOR,
     showSourceNames: true,
     showUnassigned: true,
     autoAddToQueue: true,
@@ -335,6 +337,7 @@ function normalize(raw) {
     if (isObj(s.laneColors)) for (const [lane, color] of Object.entries(LANE_COLORS)) {
       if (typeof s.laneColors[lane] === 'string' && /^#[\da-f]{6}$/i.test(s.laneColors[lane])) d.settings.laneColors[lane] = s.laneColors[lane];
     }
+    if (typeof s.queueColor === 'string' && /^#[\da-f]{6}$/i.test(s.queueColor)) d.settings.queueColor = s.queueColor;
   }
   return d;
 }
@@ -830,7 +833,7 @@ module.exports = { TaskIndex };
 
 // ---- src/dnd.js ----
 __defs['./dnd'] = function (module, exports, require) {
-// Minimal HTML5 drag-and-drop helpers shared by the Overview and the Queue.
+// Minimal HTML5 drag-and-drop helpers shared by the Board and the Queue.
 const state = { id: null, ids: [], after: [] };
 let indicator = null;
 
@@ -921,7 +924,7 @@ module.exports = { enableDrag, enableDrop, isDragging, afterDrag };
 // ---- src/overview-view.js ----
 __defs['./overview-view'] = function (module, exports, require) {
 // Tab 1: Now / Later / Someday columns. Inside each column, open tasks are grouped
-// into one card per note. Unassigned tasks sit below, also as note cards.
+// into one card per note. Inbox tasks sit below the planning lanes, also as note cards.
 // A whole note card can be dragged to move all of its tasks at once.
 const { setIcon } = require('obsidian');
 const { LANES, TITLE_MAX } = require('./constants');
@@ -936,6 +939,7 @@ function groupByNote(tasks) {
     if (!groups.has(t.path)) groups.set(t.path, { path: t.path, tasks: [] });
     groups.get(t.path).tasks.push(t);
   }
+  for (const group of groups.values()) group.tasks.sort((a, b) => a.line - b.line);
   return [...groups.values()];
 }
 
@@ -1063,7 +1067,7 @@ function renderColumn(view, el, key, tasks) {
     for (const g of groupByNote(tasks)) renderNote(view, zone, g, key);
     if (!tasks.length) {
       zone.addClass('is-empty');
-      emptyState(zone, 'inbox', 'No tasks here yet. Drag a task or note card into this lane.');
+      emptyState(zone, 'inbox', 'No tasks here yet. Drag a task or note card here.');
     }
   }
   dnd.enableDrop(zone, { itemSelector: '.to-note', orientation: 'column', onDrop: dropAll(store, key === 'unassigned' ? null : key) });
@@ -1081,16 +1085,22 @@ function renderOverview(view, el) {
     el.createDiv({ cls: 'to-notice', text: 'No open tasks found. Add "- [ ] something" to any note, or check your exclusions in the plugin settings.' });
   }
   const board = el.createDiv({ cls: 'to-board' });
-  for (const lane of [...LANES, 'unassigned']) {
-    const laneTasks = lane === 'unassigned'
-      ? tasks.filter((t) => !laneMap.has(t.id))
-      : store.lane(lane).map((id) => byId.get(id)).filter(Boolean);
-    renderColumn(view, board, lane, laneTasks);
+  for (const lane of LANES) {
+    renderColumn(view, board, lane, store.lane(lane).map((id) => byId.get(id)).filter(Boolean));
   }
-  const hz = el.createDiv({ cls: 'to-hide-zone' });
+
+  const inbox = el.createDiv({ cls: 'to-inbox-section', attr: { 'aria-label': store.laneTitle('unassigned') } });
+  renderColumn(view, inbox, 'unassigned', tasks.filter((t) => !laneMap.has(t.id)));
+
+  const hideSection = el.createDiv({ cls: 'to-hide-section' });
+  const hideHeading = hideSection.createDiv({ cls: 'to-hide-heading' });
+  hideHeading.createEl('h3', { cls: 'to-section-title', text: 'Hide from dashboard' });
+  const hiddenCount = index.allTasks().filter((t) => store.isIgnored(t.id)).length;
+  const viewHidden = hideHeading.createEl('button', { cls: 'to-icon-btn to-hidden-link', text: `View hidden (${hiddenCount})` });
+  viewHidden.addEventListener('click', () => { view.mode = 'hidden'; view.render(); });
+  const hz = hideSection.createDiv({ cls: 'to-hide-zone' });
   const icon = hz.createSpan({ cls: 'to-hide-icon' });
   setIcon(icon, 'eye-off');
-  hz.createSpan({ text: 'Hide' });
   hz.createSpan({ cls: 'to-hide-hint', text: 'Drop tasks or notes here' });
   dnd.enableDrop(hz, { onDrop: (id, b, ids) => store.setIgnoredMany(ids, true) });
 }
@@ -1124,7 +1134,7 @@ function renderQueue(view, el) {
     const link = main.createEl('button', { cls: 'to-card-text', text: text || '(empty)', attr: { 'aria-label': `Open note: ${text}` } });
     link.addEventListener('click', (e) => view.plugin.openTask(task.id, e));
     const meta = main.createDiv({ cls: 'to-card-meta' });
-    meta.createSpan({ cls: 'to-source', text: `Page: ${view.sourceName(task)}` });
+    meta.createSpan({ cls: 'to-source', text: view.sourceName(task) });
     dnd.enableDrag(li, task.id);
     li.addEventListener('keydown', (e) => {
       if (e.target !== li) return;
@@ -1154,7 +1164,7 @@ function renderQueue(view, el) {
     for (const task of rest) {
       const li = ul.createEl('li');
       li.createSpan({ cls: 'to-card-text-static', text: displayText(task.text) });
-      li.createSpan({ cls: 'to-source', text: `Page: ${view.sourceName(task)}` });
+      li.createSpan({ cls: 'to-source', text: view.sourceName(task) });
       const add = li.createEl('button', { text: 'Add to queue' });
       add.addEventListener('click', () => store.placeInQueue(task.id));
     }
@@ -1166,7 +1176,7 @@ module.exports = { renderQueue };
 
 // ---- src/dashboard-view.js ----
 __defs['./dashboard-view'] = function (module, exports, require) {
-// The dashboard leaf: header with tabs, plus Overview / Queue / Hidden panels.
+// The dashboard leaf: header with tabs, plus Board / Queue / Hidden panels.
 const { ItemView, setIcon } = require('obsidian');
 const { PLUGIN_NAME, VIEW_TYPE, RIBBON_ICON } = require('./constants');
 const { displayText } = require('./task-discovery');
@@ -1181,6 +1191,7 @@ class DashboardView extends ItemView {
     this.mode = plugin.store.ui.activeTab;
     this.focusId = null;
     this.query = '';
+    this.searchOpen = false;
     this.showAllUnassigned = false;
     this.showNotQueued = false;
     this.sourceLabelCache = null;
@@ -1251,6 +1262,7 @@ class DashboardView extends ItemView {
     for (const [lane, color] of Object.entries(this.plugin.store.settings.laneColors)) {
       root.style.setProperty(`--to-${lane}`, color);
     }
+    root.style.setProperty('--to-queue', this.plugin.store.settings.queueColor);
     const old = root.querySelector('.to-body');
     const top = old ? old.scrollTop : 0;
     root.empty();
@@ -1285,7 +1297,7 @@ class DashboardView extends ItemView {
     const mk = (mode, label, count) => {
       const b = tabs.createEl('button', {
         cls: 'to-tab',
-        attr: { role: 'tab', 'aria-selected': String(this.mode === mode) },
+        attr: { role: 'tab', 'aria-selected': String(this.mode === mode || (this.mode === 'hidden' && mode === 'overview')) },
       });
       b.createSpan({ text: label });
       b.createSpan({ cls: 'to-count', text: String(count) });
@@ -1295,31 +1307,43 @@ class DashboardView extends ItemView {
         this.render();
       });
     };
-    mk('overview', 'Overview', open.length);
+    mk('overview', 'Board', open.length);
     mk('queue', 'Task Queue', queueCount);
     const right = head.createDiv({ cls: 'to-header-right' });
     if (this.mode === 'overview') {
-      const box = right.createDiv({ cls: 'to-search' });
+      const search = right.createEl('button', {
+        cls: 'to-icon-btn to-search-toggle',
+        attr: { 'aria-label': 'Search tasks and notes', title: 'Search', 'aria-expanded': String(this.searchOpen) },
+      });
+      setIcon(search, 'search');
+      search.addEventListener('click', () => {
+        this.searchOpen = !this.searchOpen;
+        if (!this.searchOpen) this.query = '';
+        this.render();
+        const target = this.contentEl.querySelector(this.searchOpen ? '.to-search-input' : '.to-search-toggle');
+        target?.focus();
+      });
+    }
+    if (index.scanning) right.createSpan({ cls: 'to-status', text: 'Scanning vault…' });
+    const rf = right.createEl('button', { cls: 'to-icon-btn', attr: { 'aria-label': 'Rescan vault', title: 'Rescan vault' } });
+    setIcon(rf, 'refresh-cw');
+    rf.addEventListener('click', () => this.plugin.index.fullScan({ force: true }));
+    if (this.mode === 'overview' && this.searchOpen) {
+      const box = head.createDiv({ cls: 'to-search-expanded' });
       const si = box.createSpan({ cls: 'to-search-icon', attr: { 'aria-hidden': 'true' } });
       setIcon(si, 'search');
       const input = box.createEl('input', { cls: 'to-search-input', attr: { type: 'search', placeholder: 'Search tasks and notes', 'aria-label': 'Search tasks and notes', spellcheck: 'false' } });
       input.value = this.query;
       input.addEventListener('input', () => { this.query = input.value; this.renderBody(); });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.searchOpen = false;
+          this.query = '';
+          this.render();
+          this.contentEl.querySelector('.to-search-toggle')?.focus();
+        }
+      });
     }
-    if (index.scanning) right.createSpan({ cls: 'to-status', text: 'Scanning vault…' });
-    const hiddenCount = index.allTasks().filter((t) => store.isIgnored(t.id)).length;
-    const hb = right.createEl('button', {
-      cls: 'to-tab to-tab-hidden',
-      attr: { 'aria-pressed': String(this.mode === 'hidden') },
-      text: `Hidden (${hiddenCount})`,
-    });
-    hb.addEventListener('click', () => {
-      this.mode = this.mode === 'hidden' ? store.ui.activeTab : 'hidden';
-      this.render();
-    });
-    const rf = right.createEl('button', { cls: 'to-icon-btn', attr: { 'aria-label': 'Rescan vault', title: 'Rescan vault' } });
-    setIcon(rf, 'refresh-cw');
-    rf.addEventListener('click', () => this.plugin.index.fullScan({ force: true }));
   }
 
   renderHidden(el) {
@@ -1329,13 +1353,31 @@ class DashboardView extends ItemView {
     if (!hidden.length) { el.createDiv({ cls: 'to-empty', text: 'No hidden tasks.' }); return; }
     const all = el.createEl('button', { text: 'Restore all' });
     all.addEventListener('click', () => store.restoreAllIgnored());
-    const ul = el.createEl('ul', { cls: 'to-plain-list' });
+    const groups = new Map();
     for (const task of hidden) {
-      const li = ul.createEl('li');
-      li.createSpan({ cls: 'to-card-text-static', text: displayText(task.text) });
-      li.createSpan({ cls: 'to-source', text: this.sourceName(task) });
-      const b = li.createEl('button', { text: 'Restore' });
-      b.addEventListener('click', () => store.setIgnored(task.id, false));
+      if (!groups.has(task.path)) groups.set(task.path, []);
+      groups.get(task.path).push(task);
+    }
+    const list = el.createDiv({ cls: 'to-hidden-list' });
+    for (const tasks of groups.values()) {
+      const name = this.sourceName(tasks[0]);
+      const card = list.createDiv({ cls: 'to-note to-hidden-note', attr: { role: 'group', 'aria-label': name } });
+      const head = card.createDiv({ cls: 'to-note-head' });
+      const title = head.createEl('button', { cls: 'to-note-title to-hidden-note-title', attr: { 'aria-label': `Open note: ${name}` } });
+      title.createSpan({ cls: 'to-note-name', text: name });
+      title.addEventListener('click', (e) => this.plugin.openTask(tasks[0].id, e));
+      head.createSpan({ cls: 'to-count', text: String(tasks.length) });
+      if (tasks.length > 1) {
+        const restoreNote = head.createEl('button', { text: 'Restore note' });
+        restoreNote.addEventListener('click', () => store.setIgnoredMany(tasks.map((task) => task.id), false));
+      }
+      const taskList = card.createDiv({ cls: 'to-note-tasks to-hidden-tasks' });
+      for (const task of tasks) {
+        const row = taskList.createDiv({ cls: 'to-hidden-task', attr: { style: `--depth:${task.depth || 0}` } });
+        row.createSpan({ cls: 'to-hidden-task-text', text: displayText(task.text) || '(empty)' });
+        const restore = row.createEl('button', { text: 'Restore' });
+        restore.addEventListener('click', () => store.setIgnored(task.id, false));
+      }
     }
   }
 }
@@ -1346,7 +1388,7 @@ module.exports = { DashboardView };
 // ---- src/settings.js ----
 __defs['./settings'] = function (module, exports, require) {
 const { PluginSettingTab, Setting } = require('obsidian');
-const { PLUGIN_NAME, LANES, LANE_LABELS, LANE_COLORS } = require('./constants');
+const { PLUGIN_NAME, LANES, LANE_LABELS, LANE_COLORS, QUEUE_COLOR } = require('./constants');
 const { displayText } = require('./task-discovery');
 
 const lines = (s) => s.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -1371,22 +1413,22 @@ class TaskOverviewSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName('Scanning').setHeading();
     new Setting(containerEl)
       .setName('Excluded folders')
-      .setDesc('One folder per line, relative to the vault root. Tasks inside are ignored.')
+      .setDesc('Folders to skip when finding tasks. Use paths relative to the vault root; your notes are unchanged.')
       .addTextArea((t) => t.setPlaceholder('Archive\nTemplates').setValue(store.settings.excludedFolders.join('\n')).onChange((v) => setList('excludedFolders', v)));
     new Setting(containerEl)
       .setName('Excluded files')
-      .setDesc('One file path per line, relative to the vault root (the .md extension is optional).')
+      .setDesc('Files to skip when finding tasks. Use paths relative to the vault root; .md is optional.')
       .addTextArea((t) => t.setPlaceholder('Inbox/scratch.md').setValue(store.settings.excludedFiles.join('\n')).onChange((v) => setList('excludedFiles', v)));
     new Setting(containerEl)
       .setName('Also scan .txt files')
-      .setDesc('Markdown notes are always scanned. Turn this on to include plain-text (.txt) files. Attachments such as PDFs and images are never scanned.')
+      .setDesc('Scan plain-text (.txt) files alongside Markdown notes.')
       .addToggle((t) => t.setValue(store.settings.scanNonMarkdown).onChange((v) => {
         store.setSetting('scanNonMarkdown', v);
         index.fullScan();
       }));
 
     new Setting(containerEl).setName('Display').setHeading();
-    new Setting(containerEl).setName('Lane colors').setDesc('Choose the accent color used for each lane.');
+    new Setting(containerEl).setName('Board colors').setDesc('Choose an accent color for each section.');
     for (const lane of [...LANES, 'unassigned']) {
       new Setting(containerEl)
         .setName(LANE_LABELS[lane])
@@ -1401,8 +1443,18 @@ class TaskOverviewSettingTab extends PluginSettingTab {
           .onClick(() => store.setSetting('laneColors', { ...store.settings.laneColors, [lane]: LANE_COLORS[lane] })));
     }
     new Setting(containerEl)
+      .setName('Task queue background')
+      .setDesc('Choose a background color for the queue.')
+      .addColorPicker((picker) => picker.setValue(store.settings.queueColor).onChange((value) => {
+        if (/^#[\da-f]{6}$/i.test(value)) store.setSetting('queueColor', value);
+      }))
+      .addButton((button) => button
+        .setButtonText('Reset')
+        .setTooltip('Reset task queue background')
+        .onClick(() => store.setSetting('queueColor', QUEUE_COLOR)));
+    new Setting(containerEl)
       .setName('Add new tasks to the queue automatically')
-      .setDesc('Newly discovered tasks join the end of the queue. They are never reordered for you.')
+      .setDesc('New tasks go to the end. Existing tasks keep their order.')
       .addToggle((t) => t.setValue(store.settings.autoAddToQueue).onChange((v) => store.setSetting('autoAddToQueue', v)));
 
     new Setting(containerEl).setName('Hidden tasks').setHeading();
@@ -1423,11 +1475,11 @@ class TaskOverviewSettingTab extends PluginSettingTab {
       .setName('Rescan vault')
       .addButton((b) => b.setButtonText('Rescan').onClick(() => index.fullScan({ force: true })));
     new Setting(containerEl)
-      .setName('Clean up stale data')
-      .setDesc(`Forget lane, queue and hidden settings for tasks that disappeared from your notes. ${PLUGIN_NAME} otherwise keeps them for 30 days in case a task is moved or un-ticked.`)
-      .addButton((b) => b.setButtonText('Clean up').onClick(() => {
+      .setName('Clear saved data for missing tasks')
+      .setDesc('The plugin keeps a missing task’s lane, queue position, and hidden status for 30 days in case it’s moved or reopened. Clear this data now; your notes won’t change.')
+      .addButton((b) => b.setButtonText('Remove now').onClick(() => {
         const n = store.purgeMissing(0);
-        b.setButtonText(`Removed ${n}`);
+        b.setButtonText(`Removed data for ${n} task${n === 1 ? '' : 's'}`);
       }));
   }
 }
@@ -1501,7 +1553,7 @@ module.exports = class TaskOverviewPlugin extends Plugin {
     const { workspace } = this.app;
     let leaf = workspace.getLeavesOfType(VIEW_TYPE)[0];
     if (!leaf) {
-      leaf = workspace.getRightLeaf(true);
+      leaf = workspace.getRightLeaf(false);
       await leaf.setViewState({ type: VIEW_TYPE, active: true });
     }
     workspace.revealLeaf(leaf);

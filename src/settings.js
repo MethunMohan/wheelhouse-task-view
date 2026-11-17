@@ -1,6 +1,6 @@
 'use strict';
 const { PluginSettingTab, Setting } = require('obsidian');
-const { PLUGIN_NAME, LANES, LANE_LABELS, LANE_COLORS } = require('./constants');
+const { PLUGIN_NAME, LANES, LANE_LABELS, LANE_COLORS, QUEUE_COLOR } = require('./constants');
 const { displayText } = require('./task-discovery');
 
 const lines = (s) => s.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -25,22 +25,22 @@ class TaskOverviewSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName('Scanning').setHeading();
     new Setting(containerEl)
       .setName('Excluded folders')
-      .setDesc('One folder per line, relative to the vault root. Tasks inside are ignored.')
+      .setDesc('Folders to skip when finding tasks. Use paths relative to the vault root; your notes are unchanged.')
       .addTextArea((t) => t.setPlaceholder('Archive\nTemplates').setValue(store.settings.excludedFolders.join('\n')).onChange((v) => setList('excludedFolders', v)));
     new Setting(containerEl)
       .setName('Excluded files')
-      .setDesc('One file path per line, relative to the vault root (the .md extension is optional).')
+      .setDesc('Files to skip when finding tasks. Use paths relative to the vault root; .md is optional.')
       .addTextArea((t) => t.setPlaceholder('Inbox/scratch.md').setValue(store.settings.excludedFiles.join('\n')).onChange((v) => setList('excludedFiles', v)));
     new Setting(containerEl)
       .setName('Also scan .txt files')
-      .setDesc('Markdown notes are always scanned. Turn this on to include plain-text (.txt) files. Attachments such as PDFs and images are never scanned.')
+      .setDesc('Scan plain-text (.txt) files alongside Markdown notes.')
       .addToggle((t) => t.setValue(store.settings.scanNonMarkdown).onChange((v) => {
         store.setSetting('scanNonMarkdown', v);
         index.fullScan();
       }));
 
     new Setting(containerEl).setName('Display').setHeading();
-    new Setting(containerEl).setName('Lane colors').setDesc('Choose the accent color used for each lane.');
+    new Setting(containerEl).setName('Board colors').setDesc('Choose an accent color for each section.');
     for (const lane of [...LANES, 'unassigned']) {
       new Setting(containerEl)
         .setName(LANE_LABELS[lane])
@@ -55,8 +55,18 @@ class TaskOverviewSettingTab extends PluginSettingTab {
           .onClick(() => store.setSetting('laneColors', { ...store.settings.laneColors, [lane]: LANE_COLORS[lane] })));
     }
     new Setting(containerEl)
+      .setName('Task queue background')
+      .setDesc('Choose a background color for the queue.')
+      .addColorPicker((picker) => picker.setValue(store.settings.queueColor).onChange((value) => {
+        if (/^#[\da-f]{6}$/i.test(value)) store.setSetting('queueColor', value);
+      }))
+      .addButton((button) => button
+        .setButtonText('Reset')
+        .setTooltip('Reset task queue background')
+        .onClick(() => store.setSetting('queueColor', QUEUE_COLOR)));
+    new Setting(containerEl)
       .setName('Add new tasks to the queue automatically')
-      .setDesc('Newly discovered tasks join the end of the queue. They are never reordered for you.')
+      .setDesc('New tasks go to the end. Existing tasks keep their order.')
       .addToggle((t) => t.setValue(store.settings.autoAddToQueue).onChange((v) => store.setSetting('autoAddToQueue', v)));
 
     new Setting(containerEl).setName('Hidden tasks').setHeading();
@@ -77,11 +87,11 @@ class TaskOverviewSettingTab extends PluginSettingTab {
       .setName('Rescan vault')
       .addButton((b) => b.setButtonText('Rescan').onClick(() => index.fullScan({ force: true })));
     new Setting(containerEl)
-      .setName('Clean up stale data')
-      .setDesc(`Forget lane, queue and hidden settings for tasks that disappeared from your notes. ${PLUGIN_NAME} otherwise keeps them for 30 days in case a task is moved or un-ticked.`)
-      .addButton((b) => b.setButtonText('Clean up').onClick(() => {
+      .setName('Clear saved data for missing tasks')
+      .setDesc('The plugin keeps a missing task’s lane, queue position, and hidden status for 30 days in case it’s moved or reopened. Clear this data now; your notes won’t change.')
+      .addButton((b) => b.setButtonText('Remove now').onClick(() => {
         const n = store.purgeMissing(0);
-        b.setButtonText(`Removed ${n}`);
+        b.setButtonText(`Removed data for ${n} task${n === 1 ? '' : 's'}`);
       }));
   }
 }

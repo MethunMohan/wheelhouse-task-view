@@ -1,6 +1,6 @@
 'use strict';
 // Tab 1: Now / Later / Someday columns. Inside each column, open tasks are grouped
-// into one card per note. Unassigned tasks sit below, also as note cards.
+// into one card per note. Inbox tasks sit below the planning lanes, also as note cards.
 // A whole note card can be dragged to move all of its tasks at once.
 const { setIcon } = require('obsidian');
 const { LANES, TITLE_MAX } = require('./constants');
@@ -15,6 +15,7 @@ function groupByNote(tasks) {
     if (!groups.has(t.path)) groups.set(t.path, { path: t.path, tasks: [] });
     groups.get(t.path).tasks.push(t);
   }
+  for (const group of groups.values()) group.tasks.sort((a, b) => a.line - b.line);
   return [...groups.values()];
 }
 
@@ -142,7 +143,7 @@ function renderColumn(view, el, key, tasks) {
     for (const g of groupByNote(tasks)) renderNote(view, zone, g, key);
     if (!tasks.length) {
       zone.addClass('is-empty');
-      emptyState(zone, 'inbox', 'No tasks here yet. Drag a task or note card into this lane.');
+      emptyState(zone, 'inbox', 'No tasks here yet. Drag a task or note card here.');
     }
   }
   dnd.enableDrop(zone, { itemSelector: '.to-note', orientation: 'column', onDrop: dropAll(store, key === 'unassigned' ? null : key) });
@@ -160,16 +161,22 @@ function renderOverview(view, el) {
     el.createDiv({ cls: 'to-notice', text: 'No open tasks found. Add "- [ ] something" to any note, or check your exclusions in the plugin settings.' });
   }
   const board = el.createDiv({ cls: 'to-board' });
-  for (const lane of [...LANES, 'unassigned']) {
-    const laneTasks = lane === 'unassigned'
-      ? tasks.filter((t) => !laneMap.has(t.id))
-      : store.lane(lane).map((id) => byId.get(id)).filter(Boolean);
-    renderColumn(view, board, lane, laneTasks);
+  for (const lane of LANES) {
+    renderColumn(view, board, lane, store.lane(lane).map((id) => byId.get(id)).filter(Boolean));
   }
-  const hz = el.createDiv({ cls: 'to-hide-zone' });
+
+  const inbox = el.createDiv({ cls: 'to-inbox-section', attr: { 'aria-label': store.laneTitle('unassigned') } });
+  renderColumn(view, inbox, 'unassigned', tasks.filter((t) => !laneMap.has(t.id)));
+
+  const hideSection = el.createDiv({ cls: 'to-hide-section' });
+  const hideHeading = hideSection.createDiv({ cls: 'to-hide-heading' });
+  hideHeading.createEl('h3', { cls: 'to-section-title', text: 'Hide from dashboard' });
+  const hiddenCount = index.allTasks().filter((t) => store.isIgnored(t.id)).length;
+  const viewHidden = hideHeading.createEl('button', { cls: 'to-icon-btn to-hidden-link', text: `View hidden (${hiddenCount})` });
+  viewHidden.addEventListener('click', () => { view.mode = 'hidden'; view.render(); });
+  const hz = hideSection.createDiv({ cls: 'to-hide-zone' });
   const icon = hz.createSpan({ cls: 'to-hide-icon' });
   setIcon(icon, 'eye-off');
-  hz.createSpan({ text: 'Hide' });
   hz.createSpan({ cls: 'to-hide-hint', text: 'Drop tasks or notes here' });
   dnd.enableDrop(hz, { onDrop: (id, b, ids) => store.setIgnoredMany(ids, true) });
 }

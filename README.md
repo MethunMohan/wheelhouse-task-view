@@ -2,7 +2,7 @@
 
 **Your notes are your projects. Your checkboxes are your tasks.**
 
-Wheelhouse Task View brings open Markdown checkboxes from across your Obsidian vault into one simple board. Group work by note, move a whole note between **Now**, **Later**, **Someday**, and **Unassigned**, or keep a separate list of tasks in the order you choose.
+Wheelhouse Task View brings open Markdown checkboxes from across your Obsidian vault into one simple board. Group work by note, move a whole note between **Now**, **Later**, **Someday**, and **Inbox**, or keep a separate list of tasks in the order you choose.
 
 No new task syntax. No project database. No runtime dependencies. Your notes stay the source of truth.
 
@@ -13,8 +13,8 @@ No new task syntax. No project database. No runtime dependencies. Your notes sta
 ## A simple way to see your work
 
 - **One card per note.** Every open task in a note stays together. Moving the card changes the lane for the whole note.
-- **Four clear lanes.** Sort notes into Now, Later, Someday, or leave them Unassigned. Lane colors are customizable.
-- **A personal task queue.** Keep individual tasks in a manual order, independent of the board. New tasks can be added to the end automatically.
+- **Four clear lanes.** Sort notes into Now, Later, Someday, or keep them in Inbox until you decide. Lane colors are customizable.
+- **A personal task queue.** Keep individual tasks in a manual order, independent of the board. New tasks can be added to the end automatically, and the queue background color is customizable.
 - **Work from the source.** Open a task to jump to its note. Complete it in the board or queue and its Markdown checkbox is checked in the note.
 - **Find things quickly.** Filter by task or note name, collapse cards and lanes, and hide cards you do not want on the board. Notes with duplicate filenames show their parent folder for clarity.
 

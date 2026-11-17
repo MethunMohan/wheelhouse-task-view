@@ -63,7 +63,7 @@ module.exports = class TaskOverviewPlugin extends Plugin {
     const { workspace } = this.app;
     let leaf = workspace.getLeavesOfType(VIEW_TYPE)[0];
     if (!leaf) {
-      leaf = workspace.getRightLeaf(true);
+      leaf = workspace.getRightLeaf(false);
       await leaf.setViewState({ type: VIEW_TYPE, active: true });
     }
     workspace.revealLeaf(leaf);

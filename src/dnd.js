@@ -1,5 +1,5 @@
 'use strict';
-// Minimal HTML5 drag-and-drop helpers shared by the Overview and the Queue.
+// Minimal HTML5 drag-and-drop helpers shared by the Board and the Queue.
 const state = { id: null, ids: [], after: [] };
 let indicator = null;
 

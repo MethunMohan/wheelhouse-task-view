@@ -15,7 +15,7 @@
 //   settings: { excludedFolders, excludedFiles, scanNonMarkdown, showSourceNames,
 //               showUnassigned, autoAddToQueue }
 // }
-const { LANES, LANE_LABELS, LANE_COLORS, TITLE_MAX, STALE_MS } = require('./constants');
+const { LANES, LANE_LABELS, LANE_COLORS, QUEUE_COLOR, TITLE_MAX, STALE_MS } = require('./constants');
 
 const defaults = () => ({
   version: 1,
@@ -30,6 +30,7 @@ const defaults = () => ({
     excludedFiles: [],
     scanNonMarkdown: false,
     laneColors: { ...LANE_COLORS },
+    queueColor: QUEUE_COLOR,
     showSourceNames: true,
     showUnassigned: true,
     autoAddToQueue: true,
@@ -75,6 +76,7 @@ function normalize(raw) {
     if (isObj(s.laneColors)) for (const [lane, color] of Object.entries(LANE_COLORS)) {
       if (typeof s.laneColors[lane] === 'string' && /^#[\da-f]{6}$/i.test(s.laneColors[lane])) d.settings.laneColors[lane] = s.laneColors[lane];
     }
+    if (typeof s.queueColor === 'string' && /^#[\da-f]{6}$/i.test(s.queueColor)) d.settings.queueColor = s.queueColor;
   }
   return d;
 }

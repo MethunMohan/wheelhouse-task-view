@@ -7,8 +7,6 @@ Move a card between **Now**, **Later**, **Someday**, and **Unassigned** to organ
 ## Start here
 
 - [ ] Review the project notes
-- [ ] Choose one next action
-- [ ] Move this note's card to Now
 
 Completed work stays in the note and disappears from the open-task view:
 

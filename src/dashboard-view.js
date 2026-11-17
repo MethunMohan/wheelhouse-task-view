@@ -1,5 +1,5 @@
 'use strict';
-// The dashboard leaf: header with tabs, plus Overview / Queue / Hidden panels.
+// The dashboard leaf: header with tabs, plus Board / Queue / Hidden panels.
 const { ItemView, setIcon } = require('obsidian');
 const { PLUGIN_NAME, VIEW_TYPE, RIBBON_ICON } = require('./constants');
 const { displayText } = require('./task-discovery');
@@ -14,6 +14,7 @@ class DashboardView extends ItemView {
     this.mode = plugin.store.ui.activeTab;
     this.focusId = null;
     this.query = '';
+    this.searchOpen = false;
     this.showAllUnassigned = false;
     this.showNotQueued = false;
     this.sourceLabelCache = null;
@@ -84,6 +85,7 @@ class DashboardView extends ItemView {
     for (const [lane, color] of Object.entries(this.plugin.store.settings.laneColors)) {
       root.style.setProperty(`--to-${lane}`, color);
     }
+    root.style.setProperty('--to-queue', this.plugin.store.settings.queueColor);
     const old = root.querySelector('.to-body');
     const top = old ? old.scrollTop : 0;
     root.empty();
@@ -118,7 +120,7 @@ class DashboardView extends ItemView {
     const mk = (mode, label, count) => {
       const b = tabs.createEl('button', {
         cls: 'to-tab',
-        attr: { role: 'tab', 'aria-selected': String(this.mode === mode) },
+        attr: { role: 'tab', 'aria-selected': String(this.mode === mode || (this.mode === 'hidden' && mode === 'overview')) },
       });
       b.createSpan({ text: label });
       b.createSpan({ cls: 'to-count', text: String(count) });
@@ -128,31 +130,43 @@ class DashboardView extends ItemView {
         this.render();
       });
     };
-    mk('overview', 'Overview', open.length);
+    mk('overview', 'Board', open.length);
     mk('queue', 'Task Queue', queueCount);
     const right = head.createDiv({ cls: 'to-header-right' });
     if (this.mode === 'overview') {
-      const box = right.createDiv({ cls: 'to-search' });
+      const search = right.createEl('button', {
+        cls: 'to-icon-btn to-search-toggle',
+        attr: { 'aria-label': 'Search tasks and notes', title: 'Search', 'aria-expanded': String(this.searchOpen) },
+      });
+      setIcon(search, 'search');
+      search.addEventListener('click', () => {
+        this.searchOpen = !this.searchOpen;
+        if (!this.searchOpen) this.query = '';
+        this.render();
+        const target = this.contentEl.querySelector(this.searchOpen ? '.to-search-input' : '.to-search-toggle');
+        target?.focus();
+      });
+    }
+    if (index.scanning) right.createSpan({ cls: 'to-status', text: 'Scanning vault…' });
+    const rf = right.createEl('button', { cls: 'to-icon-btn', attr: { 'aria-label': 'Rescan vault', title: 'Rescan vault' } });
+    setIcon(rf, 'refresh-cw');
+    rf.addEventListener('click', () => this.plugin.index.fullScan({ force: true }));
+    if (this.mode === 'overview' && this.searchOpen) {
+      const box = head.createDiv({ cls: 'to-search-expanded' });
       const si = box.createSpan({ cls: 'to-search-icon', attr: { 'aria-hidden': 'true' } });
       setIcon(si, 'search');
       const input = box.createEl('input', { cls: 'to-search-input', attr: { type: 'search', placeholder: 'Search tasks and notes', 'aria-label': 'Search tasks and notes', spellcheck: 'false' } });
       input.value = this.query;
       input.addEventListener('input', () => { this.query = input.value; this.renderBody(); });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.searchOpen = false;
+          this.query = '';
+          this.render();
+          this.contentEl.querySelector('.to-search-toggle')?.focus();
+        }
+      });
     }
-    if (index.scanning) right.createSpan({ cls: 'to-status', text: 'Scanning vault…' });
-    const hiddenCount = index.allTasks().filter((t) => store.isIgnored(t.id)).length;
-    const hb = right.createEl('button', {
-      cls: 'to-tab to-tab-hidden',
-      attr: { 'aria-pressed': String(this.mode === 'hidden') },
-      text: `Hidden (${hiddenCount})`,
-    });
-    hb.addEventListener('click', () => {
-      this.mode = this.mode === 'hidden' ? store.ui.activeTab : 'hidden';
-      this.render();
-    });
-    const rf = right.createEl('button', { cls: 'to-icon-btn', attr: { 'aria-label': 'Rescan vault', title: 'Rescan vault' } });
-    setIcon(rf, 'refresh-cw');
-    rf.addEventListener('click', () => this.plugin.index.fullScan({ force: true }));
   }
 
   renderHidden(el) {
@@ -162,13 +176,31 @@ class DashboardView extends ItemView {
     if (!hidden.length) { el.createDiv({ cls: 'to-empty', text: 'No hidden tasks.' }); return; }
     const all = el.createEl('button', { text: 'Restore all' });
     all.addEventListener('click', () => store.restoreAllIgnored());
-    const ul = el.createEl('ul', { cls: 'to-plain-list' });
+    const groups = new Map();
     for (const task of hidden) {
-      const li = ul.createEl('li');
-      li.createSpan({ cls: 'to-card-text-static', text: displayText(task.text) });
-      li.createSpan({ cls: 'to-source', text: this.sourceName(task) });
-      const b = li.createEl('button', { text: 'Restore' });
-      b.addEventListener('click', () => store.setIgnored(task.id, false));
+      if (!groups.has(task.path)) groups.set(task.path, []);
+      groups.get(task.path).push(task);
+    }
+    const list = el.createDiv({ cls: 'to-hidden-list' });
+    for (const tasks of groups.values()) {
+      const name = this.sourceName(tasks[0]);
+      const card = list.createDiv({ cls: 'to-note to-hidden-note', attr: { role: 'group', 'aria-label': name } });
+      const head = card.createDiv({ cls: 'to-note-head' });
+      const title = head.createEl('button', { cls: 'to-note-title to-hidden-note-title', attr: { 'aria-label': `Open note: ${name}` } });
+      title.createSpan({ cls: 'to-note-name', text: name });
+      title.addEventListener('click', (e) => this.plugin.openTask(tasks[0].id, e));
+      head.createSpan({ cls: 'to-count', text: String(tasks.length) });
+      if (tasks.length > 1) {
+        const restoreNote = head.createEl('button', { text: 'Restore note' });
+        restoreNote.addEventListener('click', () => store.setIgnoredMany(tasks.map((task) => task.id), false));
+      }
+      const taskList = card.createDiv({ cls: 'to-note-tasks to-hidden-tasks' });
+      for (const task of tasks) {
+        const row = taskList.createDiv({ cls: 'to-hidden-task', attr: { style: `--depth:${task.depth || 0}` } });
+        row.createSpan({ cls: 'to-hidden-task-text', text: displayText(task.text) || '(empty)' });
+        const restore = row.createEl('button', { text: 'Restore' });
+        restore.addEventListener('click', () => store.setIgnored(task.id, false));
+      }
     }
   }
 }
