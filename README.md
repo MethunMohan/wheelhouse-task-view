@@ -1,8 +1,8 @@
+# Wheelhouse Task View
+
 <p align="center">
   <img src="docs/screenshots/logo-readme.png" alt="Wheelhouse Task View logo" width="340">
 </p>
-
-<h1 align="center">Wheelhouse Task View</h1>
 
 <p align="center"><strong>Your notes are your projects. Your checkboxes are your tasks.</strong></p>
 
