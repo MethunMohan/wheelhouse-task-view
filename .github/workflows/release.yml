@@ -41,6 +41,11 @@ jobs:
             manifest.json
             styles.css
 
+      - name: Prepare release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release-notes.js "$RELEASE_TAG" > release-notes.md
+
       - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -50,5 +55,5 @@ jobs:
             --verify-tag \
             --title="Wheelhouse Task View v$RELEASE_TAG" \
             --draft \
-            --generate-notes \
+            --notes-file release-notes.md \
             main.js manifest.json styles.css
